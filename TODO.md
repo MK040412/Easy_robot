@@ -15,5 +15,5 @@
     - Control system design
 
 ## Documentation
-- [ ] Complete `readme.md`
-- [ ] Create wiki pages for detailed documentation.
+- [x] Complete `readme.md`
+- [x] Create wiki pages for detailed documentation.
