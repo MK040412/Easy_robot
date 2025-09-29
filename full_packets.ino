@@ -9,18 +9,18 @@ static const unsigned long BAUD = 115200;
 
 // ====== Pins ======
 // Analog
-static const uint8_t PIN_J1_X = A0;
-static const uint8_t PIN_J1_Y = A1;
-static const uint8_t PIN_J2_X = A2;
-static const uint8_t PIN_J2_Y = A3;
+static const uint8_t PIN_J1_X = A1;
+static const uint8_t PIN_J1_Y = A0;
+static const uint8_t PIN_J2_X = A3;
+static const uint8_t PIN_J2_Y = A2;
 static const uint8_t PIN_POT1 = A4;
 static const uint8_t PIN_POT2 = A5;
 
 // Buttons (INPUT_PULLUP)
-static const uint8_t PIN_BTN1 = 2;
-static const uint8_t PIN_BTN2 = 3;
-static const uint8_t PIN_BTN3 = 4;
-static const uint8_t PIN_BTN4 = 5;
+static const uint8_t PIN_BTN_A = 2;
+static const uint8_t PIN_BTN_B = 3;
+static const uint8_t PIN_BTN_X = 4;
+static const uint8_t PIN_BTN_Y = 5;
 static const uint8_t PIN_BTN5 = 6;
 
 // ====== Packet constants ======
@@ -40,22 +40,22 @@ inline void writeUint16LE(uint16_t v) {
 
 uint8_t readButtonsBitfield() {
   uint8_t bits = 0;
-  bits |= (digitalRead(PIN_BTN1) == LOW) << 0;
-  bits |= (digitalRead(PIN_BTN2) == LOW) << 1;
-  bits |= (digitalRead(PIN_BTN3) == LOW) << 2;
-  bits |= (digitalRead(PIN_BTN4) == LOW) << 3;
-  bits |= (digitalRead(PIN_BTN5) == LOW) << 4;
+  bits |= (digitalRead(PIN_BTN_A) == LOW) << 0;
+  bits |= (digitalRead(PIN_BTN_B) == LOW) << 1;
+  bits |= (digitalRead(PIN_BTN_X) == LOW) << 2;
+  bits |= (digitalRead(PIN_BTN_Y) == LOW) << 3;
+  //bits |= (digitalRead(PIN_BTN5) == LOW) << 4; we don't use button 5
   return bits;
 }
 
 void setup() {
   Serial.begin(BAUD);
 
-  pinMode(PIN_BTN1, INPUT_PULLUP);
-  pinMode(PIN_BTN2, INPUT_PULLUP);
-  pinMode(PIN_BTN3, INPUT_PULLUP);
-  pinMode(PIN_BTN4, INPUT_PULLUP);
-  pinMode(PIN_BTN5, INPUT_PULLUP);
+  pinMode(PIN_BTN_A, INPUT_PULLUP);
+  pinMode(PIN_BTN_B, INPUT_PULLUP);
+  pinMode(PIN_BTN_X, INPUT_PULLUP);
+  pinMode(PIN_BTN_Y, INPUT_PULLUP);
+  //pinMode(PIN_BTN5, INPUT_PULLUP); we don't use button 5
 }
 
 void loop() {
@@ -64,12 +64,12 @@ void loop() {
   lastSendMs = now;
 
   // --- Read analogs (0~1023) ---
-  uint16_t a0 = analogRead(PIN_J1_X);
+  uint16_t a0 = 1023 - analogRead(PIN_J1_X);
   uint16_t a1 = analogRead(PIN_J1_Y);
-  uint16_t a2 = analogRead(PIN_J2_X);
+  uint16_t a2 = 1023 - analogRead(PIN_J2_X);
   uint16_t a3 = analogRead(PIN_J2_Y);
-  uint16_t a4 = analogRead(PIN_POT1);
-  uint16_t a5 = analogRead(PIN_POT2);
+  uint16_t a4 = 512;
+  uint16_t a5 = 512;
 
   // --- Buttons ---
   uint8_t btnBits = readButtonsBitfield();
