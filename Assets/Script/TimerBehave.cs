@@ -8,6 +8,8 @@ public class TimerBehave : MonoBehaviour
     public TMP_Text timer_text;
     public TMP_Text total_text;
     public CollisionDetector cd;
+    public PositionTracker positionTracker; //added position tracker function
+    
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -24,6 +26,11 @@ public class TimerBehave : MonoBehaviour
         inControl = false;
         total_text.text = (timer + cd.collisionCount * panaltyForCollision).ToString();
         cd.isTriggering = false;
+
+        if (positionTracker != null)
+        {
+            positionTracker.OnGameFinished();
+        }
     }
 
     // Update is called once per frame
@@ -36,3 +43,4 @@ public class TimerBehave : MonoBehaviour
         }
     }
 }
+
