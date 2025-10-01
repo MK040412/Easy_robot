@@ -1,0 +1,12 @@
+# 1. 기본적으로 모든 파일을 무시합니다.
+*
+
+# 2. 하지만 .gitignore 파일 자체는 버전 관리에서 제외하지 않습니다.
+!.gitignore
+
+# 3. Script 폴더까지의 경로와 그 안의 모든 파일, 그리고 관련 .meta 파일들의 무시 설정을 해제합니다.
+!My project/
+!My project/Assets/
+!My project/Assets/Script.meta
+!My project/Assets/Script/
+!My project/Assets/Script/**
