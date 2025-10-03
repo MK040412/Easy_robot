@@ -5,65 +5,100 @@ using System.Collections.Generic;
 public class ControlUnit : MonoBehaviour
 {
     [Header("Raw ADC (0..1023)")]
-    public ushort A0;    // A0
-    public ushort A1;    // A1
-    public ushort A2;    // A2
-    public ushort A3;    // A3
-    public ushort A4;   // A4
-    public ushort A5;   // A5
+    public ushort A0;    // Left Stick Y (Throttle)
+    public ushort A1;    // Left Stick X
+    public ushort A2;    // Right Stick X (Yaw)
+    public ushort A3;    // Right Stick Y (Pitch)
+    public ushort A4, A5; // Potentiometers
 
     [Header("Buttons (pressed = true)")]
-    public bool D2;  // bit0
-    public bool D3;  // bit1
-    public bool D4;  // bit2
-    public bool D5;  // bit3
-    public bool D6;  // bit4
+    public bool D2, D3, D4, D5, D6;
 
-    [Header("Robot Actuators")]
+    [Header("Robot Actuators - Assign in Inspector")]
     public Rigidbody rb;
     public List<ThrusterBehave> engine;
     public List<BrakeBehave> brake;
-    public List<ServoBehave> servo;
+    
+    public ServoBehave yawServo1;
+    public ServoBehave yawServo2;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    [Header("UI Components - Assign in Inspector")]
+    public TimerBehave timerBehave;
+    public CollisionDetector collisionDetector;
+    public PositionTracker positionTracker; // PositionTracker 참조 추가
+
+    [Header("Control Settings")]
+    public float joystickCenter = 512f;
+    public float joystickDeadzone = 50f;
+    public float maxServoAngle = 45f; // -90도에서 +90도까지, 총 180도 범위를 가집니다.
+
     void Start()
     {
-        BrakeBehave[] brakes = GetComponentsInChildren<BrakeBehave>();
         rb = this.GetComponent<Rigidbody>();
-        rb.mass += brakes.Length;
+        if (engine.Count == 0) engine = new List<ThrusterBehave>(GetComponentsInChildren<ThrusterBehave>());
+
+        // UI 컴포넌트 자동 탐색
+        if (timerBehave == null) timerBehave = FindObjectOfType<TimerBehave>();
+        if (collisionDetector == null) collisionDetector = FindObjectOfType<CollisionDetector>();
+        if (positionTracker == null) positionTracker = FindObjectOfType<PositionTracker>(); // PositionTracker 자동 탐색
+
+        // 서보가 할당되었는지 확인하고, ServoBehave 스크립트를 활성화합니다.
+        if ( yawServo1 == null || yawServo2 == null)
+        {
+            Debug.LogError("ControlUnit 인스펙터에서 Pitch와 Yaw 서보를 할당해야 합니다!");
+        }
+        else
+        {
+            // ServoBehave 스크립트를 사용해야 하므로, 활성화 상태를 보장합니다.
+            yawServo1.enabled = true;
+            yawServo2.enabled = true;
+        }
+
+        // 로켣 물리 설정
+        RocketMassInertiaBuilder massBuilder = GetComponent<RocketMassInertiaBuilder>();
+        if (massBuilder != null)
+        {
+            massBuilder.exaggerateIxIz = false;
+            massBuilder.Rebuild();
+        }
     }
 
-    // Update is called once per frame
     void FixedUpdate()
     {
-        FreezeRotation();
+        HandleThrottle();
+        HandleServos();
+    }
 
-
-
-        if (D2)
+    void HandleThrottle()
+    {
+        float thrustValue = 0f;
+        if (A0 < joystickCenter - joystickDeadzone)
         {
-            engine[0].controlVal = 1f;
+            thrustValue = Mathf.InverseLerp(joystickCenter - joystickDeadzone, 0f, A0);
         }
-        else
+        
+        foreach(var thruster in engine)
         {
-            engine[0].controlVal = 0f;
-        }
-
-        if (D3)
-        {
-            engine[1].controlVal = 1f;
-        }
-        else
-        {
-            engine[1].controlVal = 0f;
+            thruster.controlVal = Mathf.Clamp01(thrustValue);
         }
     }
 
-    private void FreezeRotation()
+    void HandleServos()
     {
-        rb.angularVelocity = new Vector3(0f, rb.angularVelocity.y, 0f);
-        Vector3 curRot = this.transform.rotation.eulerAngles;
-        this.transform.rotation = Quaternion.Euler(0f, curRot.y, 0f);
-        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        if ( yawServo1 == null || yawServo2 == null || joystickCenter == 0) return;
+
+        // 1. 오른쪽 조이스틱 입력을 -1 ~ 1 범위로 정규화
+        float pitchInput = (A2 - joystickCenter) / joystickCenter;
+        float yawInput = (A3 - joystickCenter) / joystickCenter;
+
+        // 2. 데드존 적용
+        float deadzoneNormalized = joystickDeadzone / joystickCenter;
+        if (Mathf.Abs(pitchInput) < deadzoneNormalized) pitchInput = 0f;
+        if (Mathf.Abs(yawInput) < deadzoneNormalized) yawInput = 0f;
+
+        // 3. 목표 각도를 계산하여 각 서보의 controlVal에 전달
+        // ServoBehave 스크립트가 이 값을 읽어 서보를 회전시킬 것입니다.
+        yawServo1.controlVal = yawInput * maxServoAngle;
+        yawServo2.controlVal = -yawInput * maxServoAngle;
     }
 }
