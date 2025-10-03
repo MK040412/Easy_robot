@@ -235,7 +235,7 @@ public class PositionTracker : MonoBehaviour
         return left + right;
     }
 
-    private void SaveToCSV(float distance)
+    private void SaveToCSV(float distance, float completionTime)
     {
         bool fileExists = File.Exists(csvFilePath);
         
@@ -243,7 +243,7 @@ public class PositionTracker : MonoBehaviour
         {
             if (!fileExists)
             {
-                writer.WriteLine("test,distance,location");
+                writer.WriteLine("test,distance,time,location");
             }
 
             string locationData = "";
@@ -254,9 +254,9 @@ public class PositionTracker : MonoBehaviour
                     locationData += ",";
             }
 
-            writer.WriteLine($"{experiment},{distance},{locationData}");
+            writer.WriteLine($"{experiment},{distance},{completionTime},{locationData}");
         }
 
-        Debug.Log($"Data saved to {csvFilePath}. Distance: {distance}");
+        Debug.Log($"Data saved to {csvFilePath}. Distance: {distance}, Time: {completionTime}");
     }
 }
