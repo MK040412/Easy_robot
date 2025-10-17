@@ -32,7 +32,7 @@ public class ControlUnit : MonoBehaviour
     public float joystickDeadzone = 50f;
     public float maxJoystickValue = 1023f;
     public float maxServoAngle = 45f; // -90도에서 +90도까지, 총 180도 범위를 가집니다.
-    public bool usePolarControl = false;
+    public bool usePolarControl = true;
     public bool lastButton = false;
 
     void Start()
@@ -80,30 +80,55 @@ public class ControlUnit : MonoBehaviour
     void FixedUpdate()
     {
         CheckButtonPress();
-        HandleThrottle();
-        HandleServos();
-    }
-
-    void HandleThrottle()
-    {
-        float thrustValue = 0f;
+        
         if (usePolarControl) 
         {
-            float deltaX = A0 - joystickCenter;
-            float deltaY = A1 - joystickCenter;
-            float distance = Mathf.Sqrt(deltaX * deltaX + deltaY * deltaY);
-            
-            if (distance > joystickDeadzone)
-            {
-                thrustValue = Mathf.Clamp01((distance - joystickDeadzone) / (maxJoystickValue - joystickDeadzone));
-            }
+            HandlePolarControl();
         }
         else 
         {
-            if (A1 < joystickCenter - joystickDeadzone)
+            HandleThrottle();
+            HandleServos();
+        }
+    }
+
+    void HandlePolarControl() 
+    {
+        float deltaX = A1 - joystickCenter;
+        float deltaY = A0 - joystickCenter;
+        float distance = Mathf.Sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        float thrustValue = 0f;
+        if (distance > joystickDeadzone)
+        {
+            thrustValue = Mathf.Clamp01((distance - joystickDeadzone) / (joystickCenter - joystickDeadzone));
+        }
+        
+        foreach(var thruster in engine)
+        {
+            thruster.controlVal = thrustValue;
+        }
+
+        if (yawServo1 != null && yawServo2 != null)
+        {
+            float yawValue = 0f;
+            if (distance > joystickDeadzone)
             {
-                thrustValue = Mathf.InverseLerp(joystickCenter - joystickDeadzone, 0f, A1);
+                float normalizedX = deltaX / joystickCenter;
+                yawValue = Mathf.Clamp(normalizedX, -1f, 1f);
             }
+            
+            yawServo1.controlVal = yawValue * maxServoAngle;
+            yawServo2.controlVal = -yawValue * maxServoAngle;
+        }
+    }
+
+    void HandleThrottle() 
+    {
+        float thrustValue = 0f;
+        if (A1 < joystickCenter - joystickDeadzone)
+        {
+            thrustValue = Mathf.InverseLerp(joystickCenter - joystickDeadzone, 0f, A1);
         }
         
         foreach(var thruster in engine)
@@ -112,37 +137,22 @@ public class ControlUnit : MonoBehaviour
         }
     }
 
-    void HandleServos()
+    void HandleServos() 
     {
         if (yawServo1 == null || yawServo2 == null || joystickCenter == 0) return;
 
-        float yawValue = 0f;
-        
-        if (usePolarControl)
-        {
-            float deltaX = A0 - joystickCenter;
-            float deltaY = A1 - joystickCenter;
-            float distance = Mathf.Sqrt(deltaX * deltaX + deltaY * deltaY);
-            
-            if (distance > joystickDeadzone)
-            {
-                float angle = Mathf.Atan2(deltaY, deltaX) * Mathf.Rad2Deg;
-                yawValue = angle / 180f;
-            }
-        }
-        else 
-        {
-            float pitchInput = (A2 - joystickCenter) / joystickCenter;
-            float yawInput = (A3 - joystickCenter) / joystickCenter;
+        float pitchInput = (A2 - joystickCenter) / joystickCenter;
+        float yawInput = (A3 - joystickCenter) / joystickCenter;
 
-            float deadzoneNormalized = joystickDeadzone / joystickCenter;
-            if (Mathf.Abs(pitchInput) < deadzoneNormalized) pitchInput = 0f;
-            if (Mathf.Abs(yawInput) < deadzoneNormalized) yawInput = 0f;
+        float deadzoneNormalized = joystickDeadzone / joystickCenter;
+        if (Mathf.Abs(pitchInput) < deadzoneNormalized) pitchInput = 0f;
+        if (Mathf.Abs(yawInput) < deadzoneNormalized) yawInput = 0f;
 
-            yawValue = yawInput;
-        }
-        
-        yawServo1.controlVal = yawValue * maxServoAngle;
-        yawServo2.controlVal = -yawValue * maxServoAngle;
+        yawServo1.controlVal = yawInput * maxServoAngle;
+        yawServo2.controlVal = -yawInput * maxServoAngle;
     }
 }
+
+//#1. 엑스가 컨트롤시 느낌이 이상하다 감조차 안 온다 와이는 
+//#2. 눌렀더니 엔진이 왔다갔다 한다. 
+//#3. 지금 오른쪽 조이스틱 요우를 담당하는 건 원래 코드로 바꿔놓고 폴라모드는 조정해봐
