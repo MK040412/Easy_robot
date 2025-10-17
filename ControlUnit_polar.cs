@@ -30,6 +30,7 @@ public class ControlUnit : MonoBehaviour
     [Header("Control Settings")]
     public float joystickCenter = 512f;
     public float joystickDeadzone = 50f;
+    public float maxJoystickValue = 1023f;
     public float maxServoAngle = 45f; // -90도에서 +90도까지, 총 180도 범위를 가집니다.
     public bool usePolarControl = false;
     public bool lastButton = false;
@@ -94,7 +95,7 @@ public class ControlUnit : MonoBehaviour
             
             if (distance > joystickDeadzone)
             {
-                thrustValue = Mathf.Clamp01((distance - joystickDeadzone) / (maxJoystickDistance - joystickDeadzone));
+                thrustValue = Mathf.Clamp01((distance - joystickDeadzone) / (maxJoystickValue - joystickDeadzone));
             }
         }
         else 
